@@ -38,6 +38,9 @@ const currentItemPercent= document.getElementById('currentItemPercent');
 const currentItemBar    = document.getElementById('currentItemBar');
 const queueDone         = document.getElementById('queueDone');
 const queueDoneText     = document.getElementById('queueDoneText');
+const cancelDownloadBtn = document.getElementById('cancelDownloadBtn');
+const cancelQueueBtn    = document.getElementById('cancelQueueBtn');
+const verifyDownloadedBtn = document.getElementById('verifyDownloadedBtn');
 
 // ─── State ───────────────────────────────────────────────
 let currentVideoTitle = '';
@@ -45,6 +48,10 @@ let currentVideoUrl   = '';
 let eventSource       = null;
 let playlistEntries   = [];
 let isDownloadingQueue = false;
+let autoDeselectedIndices = new Set();
+let cancelQueue = false;
+let currentQueueEventSource = null;
+let resolveCurrentQueueItem = null;
 
 // ─── URL detection ───────────────────────────────────────
 const isPlaylistUrl = url => /[?&]list=/.test(url);
@@ -85,7 +92,10 @@ playOverlay.addEventListener('click', () => {
   if (currentVideoUrl) window.open(currentVideoUrl, '_blank');
 });
 
-formatSelect.addEventListener('change', updateDownloadBtn);
+formatSelect.addEventListener('change', () => {
+  updateDownloadBtn();
+  checkSingleVideoDownloaded();
+});
 
 function updateDownloadBtn() {
   const isAudio = formatSelect.value === 'audio_only';
@@ -146,6 +156,7 @@ async function fetchVideoInfo(url) {
 
     videoCard.classList.remove('hidden');
     videoCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    checkSingleVideoDownloaded();
   } catch { alert('Error de conexión. ¿Está corriendo el servidor?'); }
   finally  { setFetchLoading(false); }
 }
@@ -161,6 +172,7 @@ downloadBtn.addEventListener('click', () => {
   });
 
   downloadBtn.disabled = true;
+  cancelDownloadBtn.classList.remove('hidden');
   progressSection.classList.remove('hidden');
   doneMessage.classList.add('hidden');
   setProgress(0, 'Iniciando descarga...');
@@ -179,6 +191,7 @@ downloadBtn.addEventListener('click', () => {
       setProgress(100, '¡Completado!');
       eventSource.close(); eventSource = null;
       downloadBtn.disabled = false;
+      cancelDownloadBtn.classList.add('hidden');
       updateDownloadBtn();
       setTimeout(() => {
         progressSection.classList.add('hidden');
@@ -190,15 +203,104 @@ downloadBtn.addEventListener('click', () => {
       progressStatus.style.color = '#ff4444';
       eventSource.close(); eventSource = null;
       downloadBtn.disabled = false;
+      cancelDownloadBtn.classList.add('hidden');
     }
   };
   eventSource.onerror = () => {
     progressStatus.textContent = 'Error de conexión';
     progressStatus.style.color = '#ff4444';
     downloadBtn.disabled = false;
+    cancelDownloadBtn.classList.add('hidden');
     if (eventSource) { eventSource.close(); eventSource = null; }
   };
 });
+
+cancelDownloadBtn.addEventListener('click', () => {
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  cancelDownloadBtn.classList.add('hidden');
+  progressSection.classList.add('hidden');
+  downloadBtn.disabled = false;
+  updateDownloadBtn();
+  setProgress(0, 'Preparando...');
+  progressStatus.style.color = '';
+  progressSpeed.textContent = '';
+  progressEta.textContent = '';
+  progressSize.textContent = '';
+});
+
+// ─── Already-downloaded check ────────────────────────────
+async function checkDownloadedStatus(titles, formatType) {
+  try {
+    const type = formatType === 'audio_only' ? 'audio' : 'video';
+    const res = await fetch('/api/check-downloaded', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titles, type })
+    });
+    if (!res.ok) return titles.map(() => false);
+    const data = await res.json();
+    return data.downloaded || titles.map(() => false);
+  } catch {
+    return titles.map(() => false);
+  }
+}
+
+async function applyPlaylistDownloadedCheck(isFormatChange = false) {
+  if (!playlistEntries.length) return;
+
+  if (isFormatChange) {
+    autoDeselectedIndices.forEach(idx => {
+      const cb = document.querySelector(`.pl-checkbox[data-index="${idx}"]`);
+      if (cb) cb.checked = true;
+    });
+    autoDeselectedIndices.clear();
+    checkAll.checked = true;
+    checkAll.indeterminate = false;
+  }
+
+  document.querySelectorAll('.pl-already-badge').forEach(b => b.classList.add('hidden'));
+
+  const downloaded = await checkDownloadedStatus(
+    playlistEntries.map(e => e.title),
+    playlistFormat.value
+  );
+
+  let count = 0;
+  downloaded.forEach((isDownloaded, idx) => {
+    if (!isDownloaded) return;
+    const cb    = document.querySelector(`.pl-checkbox[data-index="${idx}"]`);
+    const badge = document.getElementById(`pl-badge-${idx}`);
+    if (cb && cb.checked) {
+      cb.checked = false;
+      autoDeselectedIndices.add(idx);
+      count++;
+    }
+    if (badge) badge.classList.remove('hidden');
+  });
+
+  const boxes = [...document.querySelectorAll('.pl-checkbox')];
+  const checkedCount = boxes.filter(b => b.checked).length;
+  checkAll.checked = checkedCount === boxes.length;
+  checkAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+  updateSelectedCount();
+
+  const notice = document.getElementById('playlistDownloadedNotice');
+  const text   = document.getElementById('playlistDownloadedNoticeText');
+  if (!notice || !text) return;
+  if (count === 0) { notice.classList.add('hidden'); return; }
+  text.textContent = count === 1
+    ? '1 video ya descargado fue deseleccionado'
+    : `${count} videos ya descargados fueron deseleccionados`;
+  notice.classList.remove('hidden');
+}
+
+async function checkSingleVideoDownloaded() {
+  if (!currentVideoTitle) return;
+  const warning = document.getElementById('videoDownloadedWarning');
+  if (!warning) return;
+  const downloaded = await checkDownloadedStatus([currentVideoTitle], formatSelect.value);
+  downloaded[0] ? warning.classList.remove('hidden') : warning.classList.add('hidden');
+}
 
 // ─── Playlist ────────────────────────────────────────────
 async function fetchPlaylistInfo(url) {
@@ -229,6 +331,8 @@ function renderPlaylist(data) {
   checkAll.indeterminate = false;
   queueProgress.classList.add('hidden');
   queueDone.classList.add('hidden');
+  document.getElementById('playlistDownloadedNotice').classList.add('hidden');
+  autoDeselectedIndices.clear();
 
   playlistItems.innerHTML = '';
   data.entries.forEach((entry, i) => {
@@ -244,6 +348,7 @@ function renderPlaylist(data) {
       <div class="pl-meta">
         <span class="pl-title">${escHtml(entry.title)}</span>
         ${entry.duration_string ? `<span class="pl-duration">${entry.duration_string}</span>` : ''}
+        <span class="pl-already-badge hidden" id="pl-badge-${i}">Ya descargado</span>
       </div>
       <span class="pl-status" id="pl-status-${i}"></span>
     `;
@@ -277,6 +382,15 @@ function updateSelectedCount() {
   downloadPlaylistBtn.disabled = n === 0 || isDownloadingQueue;
 }
 
+verifyDownloadedBtn.addEventListener('click', async () => {
+  verifyDownloadedBtn.disabled = true;
+  verifyDownloadedBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Verificando...`;
+
+  await applyPlaylistDownloadedCheck(true);
+  verifyDownloadedBtn.disabled = false;
+  verifyDownloadedBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Verificar descargados`;
+});
+
 downloadPlaylistBtn.addEventListener('click', () => {
   if (isDownloadingQueue) return;
   const queue = [...document.querySelectorAll('.pl-checkbox:checked')]
@@ -288,13 +402,17 @@ downloadPlaylistBtn.addEventListener('click', () => {
 
 async function startQueueDownload(queue, format_id) {
   isDownloadingQueue = true;
+  cancelQueue = false;
   downloadPlaylistBtn.disabled = true;
+  cancelQueueBtn.disabled = false;
+  cancelQueueBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cancelar descarga`;
   queueDone.classList.add('hidden');
   queueProgress.classList.remove('hidden');
 
   let done = 0, errors = 0;
 
   for (let i = 0; i < queue.length; i++) {
+    if (cancelQueue) break;
     const entry  = queue[i];
     const gIndex = playlistEntries.indexOf(entry);
 
@@ -307,30 +425,43 @@ async function startQueueDownload(queue, format_id) {
     currentItemBar.style.width     = '0%';
 
     const ok = await downloadQueueItem(entry, format_id, gIndex);
+    if (cancelQueue) { setItemStatus(gIndex, 'pending'); break; }
     if (ok) { done++;   setItemStatus(gIndex, 'done'); }
     else    { errors++; setItemStatus(gIndex, 'error'); }
   }
 
-  setQueueBar(100);
-  queueCounter.textContent = `${queue.length} / ${queue.length}`;
-  queueStatus.textContent  = '¡Listo!';
+  setQueueBar(cancelQueue ? 0 : 100);
+  queueCounter.textContent = `${done} / ${queue.length}`;
+  queueStatus.textContent  = cancelQueue ? 'Cancelado' : '¡Listo!';
   isDownloadingQueue = false;
 
   setTimeout(() => {
     queueProgress.classList.add('hidden');
-    queueDoneText.textContent = errors === 0
-      ? `${done} archivos descargados correctamente`
-      : `${done} descargados · ${errors} con error`;
+    queueDoneText.textContent = cancelQueue
+      ? `Descarga cancelada · ${done} archivos completados`
+      : errors === 0
+        ? `${done} archivos descargados correctamente`
+        : `${done} descargados · ${errors} con error`;
     queueDone.classList.remove('hidden');
     downloadPlaylistBtn.disabled = false;
+    cancelQueue = false;
     updateSelectedCount();
   }, 600);
 }
 
 function downloadQueueItem(entry, format_id, gIndex) {
   return new Promise(resolve => {
+    resolveCurrentQueueItem = resolve;
     const params = new URLSearchParams({ url: entry.url, format_id, title: entry.title });
-    const es = new EventSource(`/api/download?${params}`);
+    currentQueueEventSource = new EventSource(`/api/download?${params}`);
+    const es = currentQueueEventSource;
+
+    const done = (val) => {
+      es.close();
+      currentQueueEventSource = null;
+      resolveCurrentQueueItem = null;
+      resolve(val);
+    };
 
     es.onmessage = e => {
       const msg = JSON.parse(e.data);
@@ -341,14 +472,29 @@ function downloadQueueItem(entry, format_id, gIndex) {
         currentItemBar.style.width     = `${pct}%`;
       } else if (msg.type === 'done') {
         currentItemBar.style.width = '100%';
-        es.close(); resolve(true);
+        done(true);
       } else if (msg.type === 'error') {
-        es.close(); resolve(false);
+        done(false);
       }
     };
-    es.onerror = () => { es.close(); resolve(false); };
+    es.onerror = () => done(false);
   });
 }
+
+cancelQueueBtn.addEventListener('click', () => {
+  cancelQueue = true;
+  if (currentQueueEventSource) {
+    currentQueueEventSource.close();
+    currentQueueEventSource = null;
+  }
+  // EventSource.close() NO dispara onerror, hay que resolver manualmente
+  if (resolveCurrentQueueItem) {
+    resolveCurrentQueueItem(false);
+    resolveCurrentQueueItem = null;
+  }
+  cancelQueueBtn.disabled = true;
+  cancelQueueBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Cancelando...`;
+});
 
 function setItemStatus(index, status) {
   const el   = document.getElementById(`pl-status-${index}`);
@@ -374,6 +520,7 @@ function hideAllCards() {
   playlistCard.classList.add('hidden');
   progressSection.classList.add('hidden');
   doneMessage.classList.add('hidden');
+  cancelDownloadBtn.classList.add('hidden');
   progressStatus.style.color = '';
   progressSpeed.textContent  = '';
   progressEta.textContent    = '';

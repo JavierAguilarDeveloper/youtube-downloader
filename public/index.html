@@ -63,10 +63,21 @@
             <option value="bestvideo[height=720]+bestaudio/bestvideo[height<=720]+bestaudio/best">720p</option>
             <option value="bestvideo[height=480]+bestaudio/bestvideo[height<=480]+bestaudio/best">480p</option>
           </select>
+          <button id="verifyDownloadedBtn" class="btn-verify">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Verificar descargados
+          </button>
           <button id="downloadPlaylistBtn" class="btn-download btn-download-sm">
             Descargar seleccionados
           </button>
         </div>
+      </div>
+
+      <div id="playlistDownloadedNotice" class="downloaded-notice hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="playlistDownloadedNoticeText"></span>
       </div>
 
       <div id="playlistItems" class="playlist-items"></div>
@@ -86,6 +97,10 @@
         <div class="progress-bar-track progress-bar-track-thin">
           <div id="currentItemBar" class="progress-bar-fill progress-bar-fill-dim"></div>
         </div>
+        <button id="cancelQueueBtn" class="btn-cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancelar descarga
+        </button>
       </div>
 
       <div id="queueDone" class="done-message hidden">
@@ -125,6 +140,12 @@
         <select id="formatSelect" class="format-select">
           <option value="best">Mejor calidad disponible</option>
         </select>
+        <div id="videoDownloadedWarning" class="downloaded-notice hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Este video ya fue descargado anteriormente</span>
+        </div>
         <button id="downloadBtn" class="btn-download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Descargar video
@@ -144,6 +165,10 @@
           <span id="progressEta"></span>
           <span id="progressSize"></span>
         </div>
+        <button id="cancelDownloadBtn" class="btn-cancel hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancelar descarga
+        </button>
       </div>
 
       <div id="doneMessage" class="done-message hidden">

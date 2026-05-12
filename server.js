@@ -2,6 +2,7 @@ const express = require('express');
 const { spawn, execFile } = require('child_process');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 
 const app = express();
 const PORT = 3000;
@@ -211,6 +212,32 @@ app.get('/api/download', (req, res) => {
   req.on('close', () => {
     proc.kill();
   });
+});
+
+// Check which titles are already downloaded in Music or Movies folder
+app.post('/api/check-downloaded', (req, res) => {
+  const { titles, type } = req.body;
+  if (!titles || !Array.isArray(titles)) {
+    return res.status(400).json({ error: 'titles array required' });
+  }
+  const dir = type === 'audio' ? AUDIO_DIR : VIDEO_DIR;
+  const dir2 = type === 'audio' ? AUDIO_DIR : VIDEO_DIR;
+  let files;
+  try {
+    files = fs.readdirSync(dir2);
+  } catch {
+    return res.json({ downloaded: titles.map(() => false) });
+  }
+  const sanitize = t => (t || 'archivo').replace(/[/\\?%*:|"<>]/g, '_');
+  const downloaded = titles.map(title => {
+    const safe = sanitize(title);
+    return files.some(f => {
+      const dot = f.lastIndexOf('.');
+      const base = dot > 0 ? f.slice(0, dot) : f;
+      return base === safe;
+    });
+  });
+  res.json({ downloaded });
 });
 
 app.listen(PORT, () => {
