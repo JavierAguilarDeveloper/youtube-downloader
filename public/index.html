@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Downloader</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+  </div>
+
+  <div class="container">
+    <header>
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="yt-icon"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.52V8.48L15.5 12l-5.75 3.52z"/></svg>
+      </div>
+      <h1>YouTube <span>Downloader</span></h1>
+      <p class="subtitle">Pega el enlace del video y descárgalo en tu compu</p>
+    </header>
+
+    <!-- Search -->
+    <div class="card search-card">
+      <div class="input-group">
+        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=... o playlist" autocomplete="off" spellcheck="false" />
+        <button id="pasteBtn" title="Pegar desde portapapeles">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        </button>
+      </div>
+      <button id="fetchBtn" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Obtener video
+      </button>
+    </div>
+
+    <!-- Playlist card -->
+    <div id="playlistCard" class="card playlist-card hidden">
+      <div class="playlist-header">
+        <div class="playlist-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </div>
+        <div class="playlist-header-meta">
+          <h2 id="playlistTitle"></h2>
+          <span id="playlistCount" class="playlist-count-badge"></span>
+        </div>
+      </div>
+
+      <div class="playlist-controls">
+        <label class="check-all-wrap">
+          <input type="checkbox" id="checkAll" checked />
+          <span class="check-all-box"></span>
+          <span class="check-all-label">Seleccionar todo</span>
+        </label>
+        <div class="playlist-actions">
+          <select id="playlistFormat" class="format-select format-select-sm">
+            <option value="audio_only">MP3 — Solo audio</option>
+            <option value="bestvideo+bestaudio/best">Mejor calidad (MP4)</option>
+            <option value="bestvideo[height=1080]+bestaudio/bestvideo[height<=1080]+bestaudio/best">1080p</option>
+            <option value="bestvideo[height=720]+bestaudio/bestvideo[height<=720]+bestaudio/best">720p</option>
+            <option value="bestvideo[height=480]+bestaudio/bestvideo[height<=480]+bestaudio/best">480p</option>
+          </select>
+          <button id="downloadPlaylistBtn" class="btn-download btn-download-sm">
+            Descargar seleccionados
+          </button>
+        </div>
+      </div>
+
+      <div id="playlistItems" class="playlist-items"></div>
+
+      <div id="queueProgress" class="queue-progress hidden">
+        <div class="queue-progress-top">
+          <span id="queueStatus">Descargando...</span>
+          <span id="queueCounter">0 / 0</span>
+        </div>
+        <div class="progress-bar-track">
+          <div id="queueBar" class="progress-bar-fill"></div>
+        </div>
+        <div class="queue-progress-item">
+          <span id="currentItemStatus"></span>
+          <span id="currentItemPercent"></span>
+        </div>
+        <div class="progress-bar-track progress-bar-track-thin">
+          <div id="currentItemBar" class="progress-bar-fill progress-bar-fill-dim"></div>
+        </div>
+      </div>
+
+      <div id="queueDone" class="done-message hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="queueDoneText">Todos los archivos descargados</span>
+      </div>
+    </div>
+
+    <!-- Single video card -->
+    <div id="videoCard" class="card video-card hidden">
+      <div class="video-preview">
+        <div class="thumbnail-wrap">
+          <img id="thumbnail" src="" alt="Miniatura del video" />
+          <div class="play-overlay" id="playOverlay">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+        <div class="video-meta">
+          <h2 id="videoTitle"></h2>
+          <div class="meta-row">
+            <span class="tag" id="videoDuration">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              --:--
+            </span>
+            <span class="tag" id="videoUploader">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <span class="tag" id="videoViews">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="download-section">
+        <label class="select-label">Calidad de descarga</label>
+        <select id="formatSelect" class="format-select">
+          <option value="best">Mejor calidad disponible</option>
+        </select>
+        <button id="downloadBtn" class="btn-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Descargar video
+        </button>
+      </div>
+
+      <div id="progressSection" class="progress-section hidden">
+        <div class="progress-header">
+          <span id="progressStatus">Preparando...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progressBar" class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="progressSpeed"></span>
+          <span id="progressEta"></span>
+          <span id="progressSize"></span>
+        </div>
+      </div>
+
+      <div id="doneMessage" class="done-message hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="doneText">Video descargado con éxito</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <p class="footer-label">Proyecto open source de</p>
+        <a href="https://javieraguilar.dev" target="_blank" rel="noopener" class="footer-author">
+          Javier Aguilar
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+      <div class="footer-divider-v"></div>
+      <a href="https://buymeacoffee.com/javieraguilar" target="_blank" rel="noopener" class="bmc-btn">
+        <svg class="bmc-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.216 6.415l-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196-.366-.231-.572-.065-.378-.125-.756-.192-1.133-.057-.325-.102-.69-.25-.987-.195-.4-.597-.634-.996-.788a5.723 5.723 0 00-.626-.194c-1-.263-2.05-.36-3.077-.416a25.834 25.834 0 00-3.7.062c-.915.083-1.88.184-2.75.5-.318.116-.646.256-.82.562-.171.297-.166.658-.13.968.082.69.263 1.348.681 1.907.16.212.374.38.488.616.11.23.139.499.spoken-.058-.28.16-.562.37-.79.557-.48.402-.927.918-.978 1.56-.05.64.241 1.272.65 1.726.427.473.998.78 1.573.986.977.361 1.983.537 3 .622.979.082 1.973.077 2.95-.009.973-.085 1.963-.264 2.914-.564.482-.152.963-.329 1.393-.6.406-.255.79-.603 1.013-1.028a2.266 2.266 0 00.139-1.612zM6.9 13.2a.81.81 0 00-.78.82.81.81 0 00.78.82.81.81 0 00.78-.82.81.81 0 00-.78-.82zm10.2 0a.81.81 0 00-.78.82.81.81 0 00.78.82.81.81 0 00.78-.82.81.81 0 00-.78-.82zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z"/>
+        </svg>
+        <div class="bmc-text">
+          <span class="bmc-tagline">¿Te fue útil este proyecto?</span>
+          <span class="bmc-cta">Invítame un café</span>
+        </div>
+      </a>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
