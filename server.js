@@ -7,8 +7,32 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
-const VIDEO_DIR = path.join(os.homedir(), 'Movies');
-const AUDIO_DIR = path.join(os.homedir(), 'Music');
+const PLATFORM = os.platform(); // 'darwin' | 'win32' | 'linux'
+const YT_DLP = PLATFORM === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+
+function getDownloadDirs() {
+  const home = os.homedir();
+  if (PLATFORM === 'darwin') return { video: path.join(home, 'Movies'), audio: path.join(home, 'Music') };
+  if (PLATFORM === 'win32') return { video: path.join(home, 'Videos'), audio: path.join(home, 'Music') };
+  // Linux / Android (Termux)
+  return { video: path.join(home, 'Videos'), audio: path.join(home, 'Music') };
+}
+
+function getFfmpegPath() {
+  if (PLATFORM === 'darwin') {
+    if (fs.existsSync('/opt/homebrew/bin/ffmpeg')) return '/opt/homebrew/bin/ffmpeg';
+    if (fs.existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
+  }
+  return 'ffmpeg';
+}
+
+const { video: VIDEO_DIR, audio: AUDIO_DIR } = getDownloadDirs();
+const FFMPEG_PATH = getFfmpegPath();
+
+// Create download dirs if they don't exist (common on Linux/Android)
+[VIDEO_DIR, AUDIO_DIR].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -20,7 +44,7 @@ app.post('/api/info', (req, res) => {
 
   const args = ['--dump-json', '--no-playlist', url];
 
-  execFile('yt-dlp', args, { timeout: 30000 }, (err, stdout) => {
+  execFile(YT_DLP, args, { timeout: 30000 }, (err, stdout) => {
     if (err) {
       return res.status(400).json({ error: 'No se pudo obtener información del video. Verifica la URL.' });
     }
@@ -84,7 +108,7 @@ app.post('/api/playlist', (req, res) => {
 
   const args = ['-J', '--flat-playlist', '--no-warnings', url];
 
-  execFile('yt-dlp', args, { timeout: 60000 }, (err, stdout) => {
+  execFile(YT_DLP, args, { timeout: 60000 }, (err, stdout) => {
     if (err) {
       return res.status(400).json({ error: 'No se pudo cargar la playlist. Verifica la URL.' });
     }
@@ -151,7 +175,7 @@ app.get('/api/download', (req, res) => {
       '--no-playlist',
       '--format', fmtArg,
       '--merge-output-format', 'mp4',
-      '--ffmpeg-location', '/opt/homebrew/bin/ffmpeg',
+      '--ffmpeg-location', FFMPEG_PATH,
       '--output', outputTemplate,
       '--newline',
       '--progress',
@@ -159,7 +183,7 @@ app.get('/api/download', (req, res) => {
     ];
   }
 
-  const proc = spawn('yt-dlp', args);
+  const proc = spawn(YT_DLP, args);
 
   const send = (data) => {
     if (!res.writableEnded) {

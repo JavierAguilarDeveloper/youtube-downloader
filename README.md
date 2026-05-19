@@ -1,7 +1,9 @@
 # 📥 YouTube Downloader
 
-> App web local para descargar videos y audio de YouTube directamente a tu computadora.  
+> App web local para descargar videos y audio de YouTube directamente a tu computadora o teléfono.  
 > Sin límites, sin marcas de agua, sin cuentas. Solo pega el link y listo.
+
+Compatible con **macOS**, **Windows** y **Android** (vía Termux).
 
 ---
 
@@ -41,53 +43,145 @@
 
 ---
 
-## 🛠️ Requisitos
+## 🛠️ Instalación por sistema
 
-Necesitas tener instalado en tu Mac:
+### 🍎 macOS
+
+**Requisitos:**
 
 | Herramienta | Para qué sirve | Cómo instalar |
 |-------------|----------------|---------------|
 | **Node.js** | Correr el servidor local | [nodejs.org](https://nodejs.org) o `brew install node` |
 | **yt-dlp** | Descargar de YouTube | `brew install yt-dlp` |
-| **ffmpeg** | Combinar video + audio (necesario para 720p+) | `brew install ffmpeg` |
+| **ffmpeg** | Combinar video + audio | `brew install ffmpeg` |
 
-> ⚠️ Si no tienes Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+> Si no tienes Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
----
+**Ejecutar:**
 
-## 🚀 Cómo ejecutarlo
+Doble click en **`iniciar.command`** — se abre el navegador automáticamente en `http://localhost:3000`.
 
-### Opción 1 — Doble click (la fácil) ⭐
-
-Haz doble click en el archivo **`iniciar.command`** que está en la carpeta del proyecto.
-
-Eso es todo. Se abre el navegador solo en `http://localhost:3000`.
-
----
-
-### Opción 2 — Terminal
-
+O desde terminal:
 ```bash
-# 1. Entra a la carpeta del proyecto
 cd ~/Desktop/youtube\ download
-
-# 2. Instala dependencias (solo la primera vez)
-npm install
-
-# 3. Arranca el servidor
+npm install   # solo la primera vez
 npm start
 ```
 
-Luego abre tu navegador en **http://localhost:3000**
-
----
-
-## 📁 ¿Dónde se guardan los archivos?
+**¿Dónde se guardan los archivos?**
 
 | Tipo | Carpeta |
 |------|---------|
 | 🎬 Videos (MP4) | `~/Movies/` |
 | 🎵 Audio (MP3) | `~/Music/` |
+
+---
+
+### 🪟 Windows
+
+**Requisitos:**
+
+**1. Node.js**
+Descárgalo desde [nodejs.org](https://nodejs.org) e instálalo normalmente.
+
+**2. yt-dlp**
+Abre PowerShell o CMD y ejecuta:
+```powershell
+winget install yt-dlp
+```
+O descarga el `.exe` directamente desde [github.com/yt-dlp/yt-dlp/releases](https://github.com/yt-dlp/yt-dlp/releases) y colócalo en una carpeta que esté en el PATH (por ejemplo `C:\Windows\System32`).
+
+**3. ffmpeg**
+```powershell
+winget install ffmpeg
+```
+O descárgalo desde [ffmpeg.org/download.html](https://ffmpeg.org/download.html), extrae el zip y agrega la carpeta `bin\` al PATH del sistema.
+
+> Para agregar al PATH en Windows: Inicio → "Variables de entorno" → `Path` → Nuevo → pega la ruta de la carpeta `bin`.
+
+**Ejecutar:**
+
+Doble click en **`iniciar.bat`** — se abre el navegador automáticamente en `http://localhost:3000`.
+
+O desde CMD/PowerShell:
+```cmd
+cd "%USERPROFILE%\Desktop\youtube download"
+npm install
+npm start
+```
+
+**¿Dónde se guardan los archivos?**
+
+| Tipo | Carpeta |
+|------|---------|
+| 🎬 Videos (MP4) | `C:\Users\TuUsuario\Videos\` |
+| 🎵 Audio (MP3) | `C:\Users\TuUsuario\Music\` |
+
+---
+
+### 🤖 Android (vía Termux)
+
+Termux es una terminal para Android que permite correr Node.js, yt-dlp y ffmpeg sin rootear el teléfono. La app corre como servidor local y se usa desde el navegador del teléfono.
+
+**Paso 1 — Instalar Termux**
+
+Descarga Termux desde [F-Droid](https://f-droid.org/packages/com.termux/) (recomendado) o desde la Play Store.
+
+> La versión de F-Droid es más reciente y tiene soporte completo de paquetes.
+
+**Paso 2 — Instalar dependencias**
+
+Abre Termux y ejecuta estos comandos uno por uno:
+
+```bash
+# Actualizar paquetes
+pkg update && pkg upgrade
+
+# Instalar Node.js, yt-dlp y ffmpeg
+pkg install nodejs python ffmpeg
+
+# Instalar yt-dlp vía pip
+pip install yt-dlp
+```
+
+**Paso 3 — Dar acceso al almacenamiento**
+
+```bash
+termux-setup-storage
+```
+
+Acepta el permiso cuando Android lo solicite. Esto crea la carpeta `~/storage/` con acceso a los archivos del teléfono.
+
+**Paso 4 — Clonar o copiar el proyecto**
+
+```bash
+# Opción A: clonar desde GitHub
+git clone https://github.com/JavierAguilarDeveloper/youtube-download.git
+cd youtube-download
+
+# Opción B: copiar la carpeta manualmente al almacenamiento del teléfono
+# y luego acceder desde Termux:
+cd ~/storage/shared/youtube\ download
+```
+
+**Paso 5 — Instalar dependencias y arrancar**
+
+```bash
+npm install
+npm start
+# o: bash iniciar.sh
+```
+
+Abre tu navegador (Chrome, Firefox, etc.) en **`http://localhost:3000`**.
+
+**¿Dónde se guardan los archivos?**
+
+| Tipo | Carpeta |
+|------|---------|
+| 🎬 Videos (MP4) | `~/Videos/` (dentro del home de Termux) |
+| 🎵 Audio (MP3) | `~/Music/` (dentro del home de Termux) |
+
+> Para que los archivos queden accesibles desde la galería o el explorador de archivos de Android, muévelos a `~/storage/movies/` o `~/storage/music/` después de descargar, o cambia las rutas en `server.js` a esas carpetas.
 
 ---
 
@@ -97,11 +191,12 @@ Luego abre tu navegador en **http://localhost:3000**
 Frontend          →  HTML + CSS + Vanilla JS (sin frameworks)
 Backend           →  Node.js + Express
 Descarga          →  yt-dlp (CLI)
-Merge audio/video →  ffmpeg
+Merge audio/video →  ffmpeg (detectado automáticamente según el sistema)
 Progreso en vivo  →  Server-Sent Events (SSE)
+Compatibilidad    →  macOS / Windows / Linux / Android (Termux)
 ```
 
-La app detecta automáticamente si el link es un video individual o una playlist y adapta la UI al instante.
+La app detecta automáticamente el sistema operativo para ajustar rutas, carpetas de destino y ubicación de ffmpeg.
 
 ---
 
@@ -115,7 +210,7 @@ La app detecta automáticamente si el link es un video individual o una playlist
 
 ### Solo audio (MP3)
 Selecciona **"Solo audio (MP3)"** en el dropdown de calidad.  
-El audio se extrae en la máxima calidad disponible y se guarda en `~/Music/`.
+El audio se extrae en la máxima calidad disponible y se guarda en la carpeta de Música.
 
 ### Playlists
 Pega el link de cualquier playlist de YouTube.  
@@ -129,16 +224,23 @@ Pega el link de cualquier playlist de YouTube.
 ## 🔧 Solución de problemas
 
 **El video se descarga sin audio**  
-→ Asegúrate de tener `ffmpeg` instalado: `brew install ffmpeg`
+→ Asegúrate de tener `ffmpeg` instalado y accesible desde la terminal
 
 **"yt-dlp: command not found"**  
-→ Instala yt-dlp: `brew install yt-dlp`
+→ Verifica que yt-dlp esté instalado y en el PATH del sistema
 
-**Puerto 3000 ocupado**  
-→ Cierra otras instancias: `kill $(lsof -ti:3000)` y vuelve a correr `npm start`
+**Puerto 3000 ocupado**
+- macOS/Linux: `kill $(lsof -ti:3000)`
+- Windows: `netstat -ano | findstr :3000` → anota el PID → `taskkill /PID <número> /F`
 
 **Error en video de playlist**  
 → Algunos videos pueden estar privados o geo-restringidos. El resto continúa descargándose.
+
+**En Windows: "yt-dlp no se reconoce como comando"**  
+→ Asegúrate de que la carpeta donde está `yt-dlp.exe` esté en el PATH del sistema y reinicia la terminal.
+
+**En Android: los archivos no aparecen en la galería**  
+→ Los archivos se guardan en el home de Termux. Para que sean visibles desde Android, copia los archivos a `~/storage/movies/` o `~/storage/music/` con `mv archivo.mp4 ~/storage/movies/`.
 
 ---
 
@@ -153,6 +255,7 @@ Lo construimos juntos de forma iterativa:
 3. **MP3 only** — opción de extraer solo el audio con `--extract-audio --audio-format mp3`
 4. **Soporte de playlists** — detección automática por URL, descarga secuencial con estado por video via Server-Sent Events
 5. **El diseño** — UI oscura con glassmorphism, orbs animados, barra de progreso en vivo
+6. **Cross-platform** — detección automática de OS para ajustar rutas, carpetas y binarios (macOS, Windows, Android/Linux)
 
 Todo el código es open source. Úsalo, modifícalo, compártelo.
 
